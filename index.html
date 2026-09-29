@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tower Defence</title>
+    <script type="module" src="tower_defence.js"></script>
+    <style>
+      body {
+        background-color: #fff8f0;
+      }
+      .mono {
+        font-family: monospace;
+      }
+      .weak {
+        color: #888;
+      }
+      .money {
+        margin-left: 1.75rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>Tower Defence</h2><br>
+    <canvas id="gameCanvas"></canvas><br>
+    <button id="playButton">Start</button><br>
+    <br>
+    <div class="mono money" id="moneyDisplay"></div>
+    <ul class="mono">
+      <li>G = Gun <span class="weak">(single shots)</span> <span id="priceG"></span></li>
+      <li>I = Ice <span class="weak">(slows 1 target)</span> <span id="priceI"></span></li>
+      <li>S = Sniper <span class="weak">(long range, powerful)</span> <span id="priceS"></span></li>
+      <li>L = Laser <span class="weak">(builds damage over time)</span> <span id="priceL"></span></li>
+      <li>E = Explosive <span class="weak">(area damage)</span> <span id="priceE"></span></li>
+    </ul>
+  </body>
+</html>
