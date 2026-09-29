@@ -45,6 +45,7 @@ export class TowerTypes {
             range: 100,
             damage: 50,
             cooldown: 5.0,
+            radius: 65,
         });
     }
 

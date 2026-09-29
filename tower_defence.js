@@ -19,6 +19,7 @@ export class TowerDefence {
     towers;
     towerPlaceholder;
     projectiles;
+    explosions;
     msPerFrame = 50;
     money = 1000;
     moneyDisplay;
@@ -44,6 +45,7 @@ export class TowerDefence {
         this.towerTypes = new TowerTypes().towerTypes;
         this.towers = [];
         this.projectiles = [];
+        this.explosions = [];
         this.initTestTowers(); // TODO: Remove when user can click to add towers
 
         this.canvas.addEventListener('click', (event) => {
@@ -60,9 +62,9 @@ export class TowerDefence {
     }
 
     initTestTowers() {
-        this.towers.push(new InstaHurtTower(40, 40, 'G'));
+//        this.towers.push(new InstaHurtTower(40, 40, 'G'));
         this.towers.push(new ProjectileTower(70, 40, 'I'));
-        this.towers.push(new InstaHurtTower(100, 40, 'S'));
+//        this.towers.push(new InstaHurtTower(100, 40, 'S'));
         this.towers.push(new BeamTower(130, 40, 'L'));
         this.towers.push(new ProjectileTower(160, 40, 'E'));
     }
@@ -97,6 +99,7 @@ export class TowerDefence {
         this.moveEnemies(deltaT);
         this.updateTowers(deltaT);
         this.updateProjectiles(deltaT);
+        this.updateExplosions(deltaT);
         this.updateMoneyDisplay();
     }
 
@@ -119,15 +122,22 @@ export class TowerDefence {
         enemy.hasReachedGoal = true;
     }
 
-    onEnemyHit(enemy, projectile) {
+    onEnemyHit(enemy, projectile, enemies) {
         if(projectile.isIce()) {
             enemy.slow(
                 projectile.getSlowDuration(),
                 projectile.getSlowFactor()
             );
-        } else {
-            enemy.hurt(projectile.getDamage());
+            return;
         }
+
+        if(projectile.isExplosive()) {
+            projectile.explode(enemies);
+            this.explosions.push(new Explosion(projectile));
+            return;
+        }
+
+        enemy.hurt(projectile.getDamage());
     }
 
     updateTowers(deltaT) {
@@ -175,9 +185,15 @@ export class TowerDefence {
 
             for(let enemy of enemies) {
                 if(projectile.isOnEnemy(enemy)) {
-                    this.onEnemyHit(enemy, projectile);
+                    this.onEnemyHit(enemy, projectile, enemies);
                 }
             }
+        }
+    }
+
+    updateExplosions(deltaT) {
+        for(let explosion of this.explosions) {
+            explosion.update(deltaT);
         }
     }
 
@@ -215,6 +231,13 @@ export class TowerDefence {
         // Projectiles
         for(let projectile of this.projectiles) {
             this.drawer.projectile(projectile);
+        }
+
+        // Explosions
+        for(let explosion of this.explosions) {
+            if(explosion.t > 0.0) {
+                this.drawer.circle(explosion.x, explosion.y, explosion.r, '#f00');
+            }
         }
 
         // Enemies
@@ -523,7 +546,7 @@ export class Projectile {
         this.y = tower.y;
         this.tower = tower;
         this.pxPerSecond = pxPerSecond;
-        this.hitDistance = 6.0;
+        this.hitDistance = this.isExplosive() ? 12.0 : 6.0;
         this.isActive = true;
         this.initNormalVector(enemy);
     }
@@ -548,14 +571,19 @@ export class Projectile {
         }
     }
 
+    getDistance(enemy) {
+        const vectorX = enemy.x - this.x;
+        const vectorY = enemy.y - this.y;
+        const distance = Math.sqrt(vectorX * vectorX + vectorY * vectorY);
+        return distance;
+    }
+
     isOnEnemy(enemy) {
         // TODO: This needs better detection,
         // either do subdivision of updates (between frames)
         // or perform line-circle intersection (prev to current pos)
         if(!this.isActive) return false;
-        const vectorX = enemy.x - this.x;
-        const vectorY = enemy.y - this.y;
-        const distance = Math.sqrt(vectorX * vectorX + vectorY * vectorY);
+        const distance = this.getDistance(enemy);
         const isOnEnemy = distance < this.hitDistance;
         const hasMissedEnemy = distance > 2000.0;
         this.isActive = !isOnEnemy && !hasMissedEnemy;
@@ -565,6 +593,8 @@ export class Projectile {
     getDamage() {
         return this.tower.damage;
     }
+
+    // Slowing (TODO: Create subclass)
 
     isIce() {
         return this.tower.typeId === 'I';
@@ -576,6 +606,48 @@ export class Projectile {
 
     getSlowFactor() {
         return this.tower.towerType.slowFactor;
+    }
+
+    // Explosive (TODO: Create subclass)
+
+    isExplosive() {
+        return this.tower.typeId === 'E';
+    }
+
+    explode(enemies) {
+        for(let enemy of enemies) {
+            const d = this.getDistance(enemy);
+            const r = this.getExplosionRadius();
+            if(d < r) {
+                enemy.hurt(this.getDamage());
+            }
+        }
+    }
+
+    getExplosionRadius() {
+        return this.tower.towerType.radius;
+    }
+}
+
+export class Explosion {
+    x;
+    y;
+    r;
+    t;
+
+    constructor(projectile) {
+        this.x = projectile.x;
+        this.y = projectile.y;
+        this.r = projectile.getExplosionRadius();
+        this.t = 0.2;
+    }
+
+    update(deltaT) {
+        if(this.t > 0.0) {
+            this.t -= deltaT;
+        } else {
+            this.t = 0.0;
+        }
     }
 }
 
