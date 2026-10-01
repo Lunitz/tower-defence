@@ -109,8 +109,8 @@ export class Drawer {
             towerPlaceholder.x - wh,
             towerPlaceholder.y - hh,
             w, h,
-            '#0001',
-            '#0005'
+            towerPlaceholder.isColliding ? '#f001' : '#0001',
+            towerPlaceholder.isColliding ? '#f005' : '#0005'
         );
     }
 

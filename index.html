@@ -25,13 +25,18 @@
     <canvas id="gameCanvas"></canvas><br>
     <button id="playButton">Start</button><br>
     <br>
-    <div class="mono money" id="moneyDisplay"></div>
     <ul class="mono">
+      <span id="moneyDisplay"></span><br>
+      <br>
+      Click to mark, key to buy<br>
+      <br>
       <li>G = Gun <span class="weak">(single shots)</span> <span id="priceG"></span></li>
       <li>I = Ice <span class="weak">(slows 1 target)</span> <span id="priceI"></span></li>
       <li>S = Sniper <span class="weak">(long range, powerful)</span> <span id="priceS"></span></li>
       <li>L = Laser <span class="weak">(builds damage over time)</span> <span id="priceL"></span></li>
       <li>E = Explosive <span class="weak">(area damage)</span> <span id="priceE"></span></li>
+      <br>
+      Selected: <span id="towerInfo">none</span>
     </ul>
   </body>
 </html>

@@ -9,8 +9,8 @@ export class TowerTypes {
             id: 'G',
             cost: 100,
             range: 100,
-            damage: 5,
-            cooldown: 0.5,
+            damage: 0.5,
+            cooldown: 0.10,
         });
 
         this.towerTypes.push({

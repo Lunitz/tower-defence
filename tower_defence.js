@@ -18,11 +18,13 @@ export class TowerDefence {
     towerTypes;
     towers;
     towerPlaceholder;
+    selectedTower;
     projectiles;
     explosions;
     msPerFrame = 50;
     money = 1000;
     moneyDisplay;
+    towerInfoDisplay;
 
     constructor(canvasId) {
         this.canvas = document.getElementById(canvasId);
@@ -59,12 +61,14 @@ export class TowerDefence {
         this.moneyDisplay = document.getElementById('moneyDisplay');
         this.updateMoneyDisplay();
         this.updateTowerCostDisplay();
+
+        this.towerInfoDisplay = document.getElementById('towerInfo');
     }
 
     initTestTowers() {
-//        this.towers.push(new InstaHurtTower(40, 40, 'G'));
+        this.towers.push(new InstaHurtTower(40, 40, 'G'));
         this.towers.push(new ProjectileTower(70, 40, 'I'));
-//        this.towers.push(new InstaHurtTower(100, 40, 'S'));
+        this.towers.push(new InstaHurtTower(100, 40, 'S'));
         this.towers.push(new BeamTower(130, 40, 'L'));
         this.towers.push(new ProjectileTower(160, 40, 'E'));
     }
@@ -158,12 +162,14 @@ export class TowerDefence {
             switch(tower.typeId) {
                 case 'G': // Gun
                     enemy.hurt(tower.damage);
+                    tower.startAttackAnimation(enemy);
                     break;
                 case 'I': // Ice
                     this.projectiles.push(tower.spawnProjectile(enemy));
                     break;
                 case 'S': // Sniper
                     enemy.hurt(tower.damage);
+                    tower.startAttackAnimation(enemy);
                     break;
                 case 'L': // Laser
                     tower.startBeam(enemy);
@@ -240,18 +246,26 @@ export class TowerDefence {
             }
         }
 
+        // Towers
+        for(let tower of this.towers) {
+            if(tower.isAttackAnimationRunning()) {
+                const x1 = tower.x;
+                const y1 = tower.y;
+                const x2 = tower.attackAnimationEnemy.x;
+                const y2 = tower.attackAnimationEnemy.y;
+                this.drawer.line(x1, y1, x2, y2, "#ddd");
+            }
+
+            const w = 20;
+            const h = 20;
+            this.drawer.tower(tower.x, tower.y, w, h, tower.typeId);
+        }
+
         // Enemies
         this.drawer.enemies(this.currentWaveEnemies);
 
         // Enemy health bars
         this.drawer.enemyHealthBars(this.currentWaveEnemies);
-
-        // Towers
-        for(let tower of this.towers) {
-            const w = 20;
-            const h = 20;
-            this.drawer.tower(tower.x, tower.y, w, h, tower.typeId);
-        }
 
         // Tower placeholder (when adding a new tower)
         if(this.towerPlaceholder) {
@@ -260,16 +274,68 @@ export class TowerDefence {
     }
 
     onCanvasClick(e) {
+        this.towerInfoDisplay.innerText = 'none';
+        this.selectedTower = undefined;
+        for(let tower of this.towers) {
+            if(this.towerWasClicked(tower, e)) {
+                const info = tower.typeId;
+                this.towerInfoDisplay.innerText = info;
+                this.selectedTower = tower;
+            }
+        }
+
+        if(this.selectedTower != undefined) {
+            this.towerPlaceholder = undefined;
+            return;
+        }
+
         this.towerPlaceholder = {
             x: e.offsetX,
             y: e.offsetY,
         }
+
+        this.towerPlaceholder.isColliding =
+            this.towerPlaceHolderIsColliding();
+    }
+
+    towerWasClicked(tower, e) {
+        const x = e.offsetX;
+        const y = e.offsetY;
+        const w = 10;
+        const h = 10;
+        if(x > tower.x - w && x < tower.x + w) {
+            if(y > tower.y - h && y < tower.y + h) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    towerPlaceHolderIsColliding() {
+        let isColliding = false;
+        const x = this.towerPlaceholder.x;
+        const y = this.towerPlaceholder.y;
+        const w = 20;
+        const h = 20;
+        for(let tower of this.towers) {
+            if(x > tower.x - w && x < tower.x + w) {
+                if(y > tower.y - h && y < tower.y + h) {
+                    isColliding = true;
+                }
+            }
+        }
+        return isColliding;
     }
 
     onKeydown(e) {
         if(this.towerPlaceholder) {
             if(e.key === 'Escape') {
                 this.towerPlaceholder = undefined;
+                return;
+            }
+
+            if(this.towerPlaceholder.isColliding) {
+                return;
             }
 
             const upperKey = e.key.toUpperCase();
@@ -450,6 +516,8 @@ export class Tower {
     damage;
     projectilePxPerSecond;
     cooldownRemaining;
+    attackAnimationTime;
+    attackAnimationEnemy;
 
     constructor(x, y, towerTypeId) {
         this.towerTypes = new TowerTypes();
@@ -474,12 +542,34 @@ export class Tower {
         return this.cooldownRemaining === 0.0;
     }
 
+    startAttackAnimation(enemy) {
+        if(this.typeId === 'G') {
+            this.attackAnimationTime = 0.02;
+            this.attackAnimationEnemy = enemy;
+        }
+        if(this.typeId === 'S') {
+            this.attackAnimationTime = 0.03;
+            this.attackAnimationEnemy = enemy;
+        }
+    }
+
+    isAttackAnimationRunning() {
+        return this.attackAnimationTime > 0.0;
+    }
+
     update(deltaT) {
         if(this.cooldownRemaining > 0.0) {
             this.cooldownRemaining -= deltaT;
         }
         if(this.cooldownRemaining < 0.0) {
             this.cooldownRemaining = 0.0;
+        }
+ 
+        if(this.attackAnimationTime > 0.0) {
+            this.attackAnimationTime -= deltaT;
+        }
+        if(this.attackAnimationTime < 0.0) {
+            this.attackAnimationTime = 0.0;
         }
     }
 
